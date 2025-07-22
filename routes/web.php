@@ -246,6 +246,15 @@ Route::middleware(Language::class)
             Route::resource('/purchases', PurchaseController::class);
             Route::resource('purchases.purchaseItems', PurchaseItemController::class)->except('edit','show');
             Route::post('purchases/supplier', [SupplierController::class,'store'])->name('purchases.supplier.store');
+
+            //For Cache clear
+            Route::get('/clear-cache', function () {
+                Artisan::call('config:clear');
+                Artisan::call('route:clear');
+                Artisan::call('view:clear');
+                Artisan::call('optimize:clear');
+                return 'Cache cleared';
+            });
         });
     }
 );

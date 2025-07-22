@@ -81,6 +81,32 @@
                                 <!--end::Submit button-->
                             </VForm>
                             <!--end::Form-->
+                            <div class="card card-flush">
+                                <div class="card-header">
+                                    <h3 class="card-title">Account login credentials</h3>
+                                </div>
+                                <div class="card-body pt-0">
+                                    <table class="table align-middle table-row-dashed fs-6 gy-5">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-bold">Admin</td>
+                                                <td>01700110011</td>
+                                                <td>12345</td>
+                                                <td>
+                                                    <button
+                                                    type="button"
+                                                    class="btn btn-icon btn-light btn-sm"
+                                                    title="Autofill login"
+                                                    @click="fillCredentials('01700110011', '12345')"
+                                                    >
+                                                    <i class="ki-duotone ki-copy fs-2"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
 
                         <!--begin::Footer-->
@@ -133,6 +159,11 @@ const formData = useForm({
     mobile_number: '',
     password: ''
 });
+
+const fillCredentials = (mobile_number: string, password: string) => {
+  formData.mobile_number = mobile_number;
+  formData.password = password;
+};
 
 const onSubmitLogin = async () => {
     formData.post(route('login'), {
