@@ -1,0 +1,158 @@
+<template>
+    <div class="modal fade" id="kt_modal_add_buyer_waiver" ref="addPaymentModalRef" tabindex="-1" aria-hidden="true">
+        <!--begin::Modal dialog-->
+        <div class="modal-dialog modal-dialog-centered mw-650px">
+            <div class="modal-content">
+                <!--begin::Modal header-->
+                <div class="modal-header" id="kt_modal_update_email_header">
+                    <!--begin::Modal title-->
+                    <h2 class="fw-bold">{{ $t("payment.title.addWaiver") }}</h2>
+                    <!--end::Modal title-->
+
+                    <!--begin::Close-->
+                    <div id="kt_modal_add_payment_close" data-bs-dismiss="modal" class="btn btn-icon btn-sm btn-active-icon-primary" @click="resetForm">
+                        <KTIcon icon-name="cross" icon-class="fs-1" />
+                    </div>
+                    <!--end::Close-->
+                </div>
+                <!--end::Modal header-->
+
+                <!--begin::Form-->
+                <VForm @submit="submit()" :model="formData" ref="formRef">
+                    <!--begin::Modal body-->
+                    <div class="modal-body py-10 px-lg-17">
+                        <!--begin::Scroll-->
+                        <div class="scroll-y me-n7 pe-7" id="kt_modal_update_item_unit" data-kt-scroll="true" data-kt-scroll-activate="{default: false, lg: true}"  data-kt-scroll-max-height="auto" data-kt-scroll-dependencies="#kt_modal_update_item_unit_header" data-kt-scroll-wrappers="#kt_modal_update_item_unit_scroll" data-kt-scroll-offset="300px">
+                            <div class="notice d-flex bg-light-primary rounded border-primary border border-dashed mb-9 p-6 d-flex flex-stack flex-grow-1 justify-content-center align-items-center text-center">
+                                <!--begin::Content-->
+                                <div class="fw-semibold">
+                                    <div class="fs-3 text-gray-700"> {{ $t("buyer.label.totalDue") }}: {{ props.totalDue }} </div>
+                                </div>
+                                <!--end::Content-->
+                            </div>
+                            <!--Amount-->
+                            <div class="fv-row mb-7">
+                                <label class="required fs-6 fw-semibold mb-2">{{ $t("payment.label.amount") }}</label>
+                                <Field type="text" :placeholder="$t('payment.placeholder.amount')" class="form-control form-control-lg form-control-solid" name="amount"v-model="formData.amount" />
+                                <p v-if="errors.amount" class="text-danger"> {{ errors.amount }} </p>
+                                <ErrorMessage :errorMessage="formData.errors.amount"/>
+                            </div>
+
+                            <div class="fv-row mb-7">
+                                <label class="required fs-6 fw-semibold mb-2">{{ $t("payment.label.waiverDate") }}</label>
+                                <Field type="date" :placeholder="$t('payment.placeholder.paymentDate')" class="form-control form-control-lg form-control-solid" name="payment_date" v-model="formData.payment_date" />
+                                <ErrorMessage :errorMessage="formData.errors.payment_date"/>
+                            </div>
+
+                            <div class="fv-row mb-7">
+                                <label class="fs-6 fw-semibold mb-2">{{ $t("label.note") }}</label>
+                                <Field type="text" :placeholder="$t('placeholder.note')" class="form-control form-control-lg form-control-solid" name="note" v-model="formData.note" disabled />
+                                <ErrorMessage :errorMessage="formData.errors.note" />
+                            </div>
+                        </div>
+                        <!--end::Scroll-->
+                    </div>
+                    <!--end::Modal body-->
+
+                    <!--begin::Modal footer-->
+                    <div class="modal-footer flex-center">
+                        <!--Discard Button-->
+                        <div data-bs-dismiss="modal" class="btn btn-light me-3" @click="resetForm">
+                            {{ $t("buttonValue.discard") }}
+                        </div>
+
+                        <!-- Submit Button -->
+                        <SubmitButton />
+                    </div>
+                    <!--end::Modal footer-->
+                </VForm>
+                <!--end::Form-->
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts" setup>
+import ErrorMessage from "@/Components/Message/ErrorMessage.vue";
+import SubmitButton from "@/Components/Button/SubmitButton.vue";
+import { ref, watch, defineProps, computed, reactive } from "vue";
+import { useForm, usePage, router } from "@inertiajs/vue3";
+import { hideModal } from "@/Core/helpers/Modal";
+import KTIcon from "@/Core/helpers/kt-icon/KTIcon.vue";
+import { Field, Form as VForm } from "vee-validate";
+import toastr from "toastr";
+import "toastr/toastr.scss";
+import Multiselect from "@vueform/multiselect";
+import i18n from "@/Core/plugins/i18n";
+const { t } = i18n.global;
+
+const formRef = ref<null | HTMLFormElement>(null);
+const addPaymentModalRef = ref<null | HTMLElement>(null);
+
+const props = defineProps({
+    buyer: Object,
+    allPaymentMethod: Object,
+    totalDue: Number,
+});
+
+const formattedToday = ref(new Date().toISOString().substr(0, 10));
+
+const formData = useForm({
+    amount: "",
+    payment_date: formattedToday.value,
+    payment_method: "cash",
+    note: "ডিসকাউন্ট",
+});
+
+const resetForm = () => {
+    formData.reset();
+    formRef.value?.resetForm();
+};
+
+const errors = reactive({
+    amount: "",
+});
+
+const checkTotalDue = () => {
+    let valid = true;
+    errors.amount = "";
+
+    const amountNum = parseFloat(formData.amount);
+
+    if (typeof props.totalDue !== 'number' || props?.totalDue <= 0) {
+        errors.amount = t('validation.waiver.zeroOrNegative');
+        valid = false;
+    } else if (isNaN(amountNum) || amountNum < 0) {
+        errors.amount = t('validation.waiver.number');
+        valid = false;
+    } else if (amountNum > props?.totalDue) {
+        errors.amount = t('validation.waiver.exceed');
+        valid = false;
+    }
+
+    return valid;
+};
+
+const submit = () => {
+    if (checkTotalDue()) {
+        const url = route("buyers.payments.addWaiver", props.buyer?.id);
+        formData.post(url, {
+            onSuccess: () => {
+                preserveScroll: true;
+                hideModal(addPaymentModalRef.value);
+                const flash = usePage().props.flash;
+                let { success } = flash as any;
+
+                if (flash && success) {
+                    toastr.success(success);
+                    success = null;
+                }
+            },
+            onError: (errors) => {
+                console.log("Errors:", errors);
+            },
+        });
+    }
+};
+</script>
+
